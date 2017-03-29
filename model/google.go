@@ -16,19 +16,18 @@ type googleResponse struct {
 }
 
 type GoogleResponses struct {
-	Items []googleResponse
+	Items []googleResponse `json:"items,omitempty"`
+	Err   ApiError         `json:"apperror,omitempty"`
 }
 
 func DoGoogleQuery(url string) ([]byte, error) {
-	fmt.Println("I am  here 1")
 
 	response, err := http.Get(url)
-	fmt.Println("I am here 2")
+	defer response.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("I am here 3")
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
@@ -37,7 +36,9 @@ func DoGoogleQuery(url string) ([]byte, error) {
 	return body, nil
 }
 
-func GoogleQuery(query, apikey string) (*GoogleResponses, error) {
+func GoogleQuery(query string, ch chan GoogleResponses) {
+
+	apikey := ""
 
 	url := EncodeGoogleURL(query, apikey)
 	fmt.Println("Url: ", url)
@@ -45,16 +46,16 @@ func GoogleQuery(query, apikey string) (*GoogleResponses, error) {
 	body, err := Do(url)
 
 	if err != nil {
-		return nil, err
+		// TODO
 	}
 
-	message := &GoogleResponses{}
+	googleRes := &GoogleResponses{}
 
-	if err = message.Decode(body); err != nil {
-		return nil, err
+	if err = googleRes.Decode(body); err != nil {
+		// TODO
 	}
 
-	return message, nil
+	ch <- *googleRes
 }
 
 func ResponseToJSON(m *GoogleResponses) string {
@@ -68,9 +69,6 @@ func ResponseToJSON(m *GoogleResponses) string {
 
 func EncodeGoogleURL(query, apikey string) string {
 	queryEnc := url.QueryEscape(query)
-	// if strings.HasPrefix(query, "!") {
-	// 	return fmt.Sprintf(baseUrl, queryEnc, "&no_redirect=1")
-	// }
 	return fmt.Sprintf(googleBaseURL, apikey, queryEnc)
 }
 

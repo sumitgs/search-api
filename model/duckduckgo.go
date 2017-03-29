@@ -11,13 +11,15 @@ import (
 var duckBaseUrl = "https://api.duckduckgo.com/?q=%s&format=json"
 
 type Message struct {
-	AbstractSource string
-	AbstractURL    string
+	AbstractSource string   `json:"AbstractSource,omitempty"`
+	AbstractURL    string   `json:"AbstractURL,omitempty"`
+	Err            ApiError `json:"apperror,omitempty"`
 }
 
 func Do(url string) ([]byte, error) {
 
 	response, err := http.Get(url)
+	defer response.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -30,23 +32,23 @@ func Do(url string) ([]byte, error) {
 	return body, nil
 }
 
-func DuckQuery(query string) (*Message, error) {
+func DuckQuery(query string, ch chan Message) {
 
 	url := EncodeDuckURL(query)
 
 	body, err := Do(url)
 
 	if err != nil {
-		return nil, err
+		// TODO
 	}
 
 	message := &Message{}
 
 	if err = message.Decode(body); err != nil {
-		return nil, err
+		// TODO
 	}
 
-	return message, nil
+	ch <- *message
 }
 
 func MessageToJson(m *Message) string {

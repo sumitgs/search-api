@@ -22,12 +22,14 @@ type Tweet struct {
 }
 
 type Tweets struct {
-	Statuses []Tweet
+	Statuses []Tweet  `json:"statuses,omitempty"`
+	Err      ApiError `json:"apperror,omitempty"`
 }
 
 func DoTwitterQuery(url string) ([]byte, error) {
 
 	response, err := http.Get(url)
+	defer response.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +42,7 @@ func DoTwitterQuery(url string) ([]byte, error) {
 	return body, nil
 }
 
-func TwitterQuery(query string) (*Tweets, error) {
+func TwitterQuery(query string, ch chan Tweets) {
 
 	client := &http.Client{}
 
@@ -75,11 +77,10 @@ func TwitterQuery(query string) (*Tweets, error) {
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err = tweets.Decode(body); err != nil {
-		fmt.Println("err6: ", err.Error())
-		return nil, err
+		// TODO
 	}
 
-	return tweets, nil
+	ch <- *tweets
 }
 
 func TweetToJson(t *Tweets) string {
