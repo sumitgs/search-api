@@ -13,7 +13,7 @@ var duckBaseUrl = "https://api.duckduckgo.com/?q=%s&format=json"
 type Message struct {
 	AbstractSource string   `json:"AbstractSource,omitempty"`
 	AbstractURL    string   `json:"AbstractURL,omitempty"`
-	Err            ApiError `json:"apperror,omitempty"`
+	Err            ApiError `json:"ApiError,omitempty"`
 }
 
 func DuckQuery(query string, ch chan Message) {
@@ -23,32 +23,25 @@ func DuckQuery(query string, ch chan Message) {
 	body, err := util.Do(url)
 
 	if err != nil {
-		// TODO
+		ch <- Message{
+			Err: ApiError{"Internal Server Error", 500},
+		}
 	}
 
 	message := &Message{}
 
 	if err = message.Decode(body); err != nil {
-		// TODO
+		ch <- Message{
+			Err: ApiError{"Internal Server Error", 500},
+		}
 	}
 
 	ch <- *message
 }
 
-func MessageToJson(m *Message) string {
-	b, err := json.Marshal(m)
-	if err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
-}
-
 func EncodeDuckURL(query string) string {
 	queryEnc := url.QueryEscape(query)
-	// if strings.HasPrefix(query, "!") {
-	// 	return fmt.Sprintf(baseUrl, queryEnc, "&no_redirect=1")
-	// }
+
 	return fmt.Sprintf(duckBaseUrl, queryEnc)
 }
 

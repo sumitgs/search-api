@@ -23,7 +23,7 @@ type Tweet struct {
 
 type Tweets struct {
 	Statuses []Tweet  `json:"statuses,omitempty"`
-	Err      ApiError `json:"apperror,omitempty"`
+	Err      ApiError `json:"ApiError,omitempty"`
 }
 
 func TwitterQuery(query string, ch chan Tweets) {
@@ -43,11 +43,21 @@ func TwitterQuery(query string, ch chan Tweets) {
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
 
 	resp, err := client.Do(req)
+	if err != nil {
+		ch <- Tweets{
+			Err: ApiError{"Bad Request", 400},
+		}
+	}
 
 	twitterToken := TwitterTokenResponse{}
 	decoder := json.NewDecoder(resp.Body)
 
 	err = decoder.Decode(&twitterToken)
+	if err != nil {
+		ch <- Tweets{
+			Err: ApiError{"Internal Server Error", 500},
+		}
+	}
 
 	bearerToken := twitterToken.AccessToken
 
@@ -56,31 +66,27 @@ func TwitterQuery(query string, ch chan Tweets) {
 
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
 	response, err := clients.Do(request)
+	if err != nil {
+		ch <- Tweets{
+			Err: ApiError{"Bad Request", 400},
+		}
+	}
 
 	tweets := &Tweets{}
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err = tweets.Decode(body); err != nil {
-		// TODO
+		ch <- Tweets{
+			Err: ApiError{"Internal Server Error", 500},
+		}
 	}
 
 	ch <- *tweets
 }
 
-func TweetToJson(t *Tweets) string {
-	b, err := json.Marshal(t)
-	if err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
-}
-
 func EncodeTwitterURL(query string) string {
 	queryEnc := url.QueryEscape(query)
-	// if strings.HasPrefix(query, "!") {
-	// 	return fmt.Sprintf(baseUrl, queryEnc, "&no_redirect=1")
-	// }
+
 	return fmt.Sprintf(twitterBaseUrl, queryEnc)
 }
 

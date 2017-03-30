@@ -13,18 +13,18 @@ func Search() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query().Get("q")
 
-		// googleAPIResCh := getGoogleSearch(query, model.GoogleQuery)
+		googleAPIResCh := getGoogleSearch(query, model.GoogleQuery)
 		twitterAPIResCh := getTwitterSearch(query, model.TwitterQuery)
 		duckduckGoAPIResCh := getDuckDuckGoSearch(query, model.DuckQuery)
 		defer func() {
-			// close(googleAPIResCh)
+			close(googleAPIResCh)
 			close(twitterAPIResCh)
 			close(duckduckGoAPIResCh)
 		}()
 
 		response := model.SearchResponse{
-			Query: query,
-			// Google:     <-googleAPIResCh,
+			Query:      query,
+			Google:     <-googleAPIResCh,
 			DuckDuckGO: <-duckduckGoAPIResCh,
 			Twitter:    <-twitterAPIResCh,
 		}
@@ -55,7 +55,6 @@ func getGoogleSearch(query string, s func(string, chan model.GoogleResponses)) c
 				Err: model.ApiError{"timeout occured", 500},
 			}
 		}
-
 	}()
 
 	return responseCh

@@ -17,7 +17,7 @@ type googleResponse struct {
 
 type GoogleResponses struct {
 	Items []googleResponse `json:"items,omitempty"`
-	Err   ApiError         `json:"apperror,omitempty"`
+	Err   ApiError         `json:"ApiError,omitempty"`
 }
 
 func GoogleQuery(query string, ch chan GoogleResponses) {
@@ -25,34 +25,29 @@ func GoogleQuery(query string, ch chan GoogleResponses) {
 	apikey := ""
 
 	url := EncodeGoogleURL(query, apikey)
-	fmt.Println("Url: ", url)
 
 	body, err := util.Do(url)
 
 	if err != nil {
-		// TODO
+		ch <- GoogleResponses{
+			Err: ApiError{"Internal Server Error", 500},
+		}
 	}
 
 	googleRes := &GoogleResponses{}
 
 	if err = googleRes.Decode(body); err != nil {
-		// TODO
+		ch <- GoogleResponses{
+			Err: ApiError{"Internal Server Error", 500},
+		}
 	}
 
 	ch <- *googleRes
 }
 
-func ResponseToJSON(m *GoogleResponses) string {
-	b, err := json.Marshal(m)
-	if err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
-}
-
 func EncodeGoogleURL(query, apikey string) string {
 	queryEnc := url.QueryEscape(query)
+
 	return fmt.Sprintf(googleBaseURL, apikey, queryEnc)
 }
 
