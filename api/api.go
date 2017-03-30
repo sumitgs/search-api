@@ -60,6 +60,24 @@ func getGoogleSearch(query string, s func(string, chan model.GoogleResponses)) c
 	return responseCh
 }
 
+/* Can use one common search function instead of different function for different resource site. This approach uses empty interface and
+type assertion for getting data back from the interface. But these has added cost in terms of performance.
+
+type Response struct {
+	Data interface{}
+	Err  error
+}
+
+func search(query string, search func(string, interface{}, chan model.Response)) model.Response {
+	response_ch := make(chan model.Response)
+	var responseData interface{}
+	go search(query, responseData, response_ch)
+
+	resp := <-response_ch
+	return resp
+}
+*/
+
 func getTwitterSearch(query string, s func(string, chan model.Tweets)) chan model.Tweets {
 	ch := make(chan model.Tweets)
 	timer := time.NewTimer(1 * time.Second)
