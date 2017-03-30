@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/gorilla/mux"
 	"github.com/search-api/api"
 )
 
@@ -17,8 +16,6 @@ type Cfg struct {
 }
 
 func main() {
-	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/", api.Search())
 
 	file, _ := os.Open("conf.json")
 	decoder := json.NewDecoder(file)
@@ -28,5 +25,6 @@ func main() {
 		fmt.Println("error: ", err.Error())
 	}
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", cfg.Port), router))
+	http.HandleFunc("/", api.Search())
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", cfg.Port), nil))
 }
