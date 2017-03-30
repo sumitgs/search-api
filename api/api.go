@@ -13,9 +13,9 @@ func Search() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query().Get("q")
 
-		googleAPIResCh := getGoogleSearch(query, model.GoogleQuery)
-		twitterAPIResCh := getTwitterSearch(query, model.TwitterQuery)
-		duckduckGoAPIResCh := getDuckDuckGoSearch(query, model.DuckQuery)
+		googleAPIResCh := getGoogleSearch(query, GoogleQuery)
+		twitterAPIResCh := getTwitterSearch(query, TwitterQuery)
+		duckduckGoAPIResCh := getDuckDuckGoSearch(query, DuckQuery)
 		defer func() {
 			close(googleAPIResCh)
 			close(twitterAPIResCh)
