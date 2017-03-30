@@ -10,17 +10,22 @@ import (
 )
 
 var googleBaseURL = "https://www.googleapis.com/customsearch/v1?key=%s&cx=017576662512468239146:omuauf_lfve&q=%s"
+var apikey string
 
-func GoogleQuery(query string, ch chan model.GoogleResponses) {
+// set credential necessary for authentication
+func SetGoogleCredential() {
+	apikey = os.Getenv("GOOGLE_API_KEY")
+}
 
-	apikey := os.Getenv("GAK")
+// query Google search API for given query parameter and returns response in a channel
+func GoogleResourceQuery(queryParameter string, responseCh chan model.GoogleResponses) {
 
-	url := EncodeGoogleURL(query, apikey)
+	url := EncodeGoogleURL(queryParameter, apikey)
 
 	body, err := util.Do(url)
 
 	if err != nil {
-		ch <- model.GoogleResponses{
+		responseCh <- model.GoogleResponses{
 			Err: model.ApiError{"Internal Server Error", 500},
 		}
 	}
@@ -28,16 +33,17 @@ func GoogleQuery(query string, ch chan model.GoogleResponses) {
 	googleRes := &model.GoogleResponses{}
 
 	if err = googleRes.Decode(body); err != nil {
-		ch <- model.GoogleResponses{
+		responseCh <- model.GoogleResponses{
 			Err: model.ApiError{"Internal Server Error", 500},
 		}
 	}
 
-	ch <- *googleRes
+	responseCh <- *googleRes
 }
 
-func EncodeGoogleURL(query, apikey string) string {
-	queryEnc := url.QueryEscape(query)
+// encode URL for given query parameter
+func EncodeGoogleURL(queryParameter, apikey string) string {
+	queryEnc := url.QueryEscape(queryParameter)
 
 	return fmt.Sprintf(googleBaseURL, apikey, queryEnc)
 }

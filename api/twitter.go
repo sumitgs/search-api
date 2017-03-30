@@ -13,18 +13,24 @@ import (
 	"github.com/search-api/model"
 )
 
-var twitterBaseUrl = "https://api.twitter.com/1.1/search/tweets.json?count=11&q=%s"
+var twitterBaseUrl = "https://api.twitter.com/1.1/search/tweets.json?count=3&q=%s"
 var twitterOAuthUrl = "https://api.twitter.com/oauth2/token"
+var ConsumerKey string
+var ConsumerSecret string
 
-func TwitterQuery(query string, ch chan model.Tweets) {
+// set credential necessary for  authentication
+func SetTwitterCredential() {
+	ConsumerKey = os.Getenv("TWITTER_CONSUMER_KEY")
+	ConsumerSecret = os.Getenv("TWITTER_CONSUMER_SECRET")
+}
+
+// query Twitter search API for given query parameter and returns response in a channel
+func TwitterResourceQuery(queryParameter string, responseCh chan model.Tweets) {
 
 	client := &http.Client{}
 
-	ConsumerKey := os.Getenv("TCK")
-	ConsumerSecret := os.Getenv("TCS")
-
-	src := ConsumerKey + ":" + ConsumerSecret
-	encodedTwitterKey := base64.StdEncoding.EncodeToString([]byte(src))
+	TwitterKey := ConsumerKey + ":" + ConsumerSecret
+	encodedTwitterKey := base64.StdEncoding.EncodeToString([]byte(TwitterKey))
 
 	requestBody := bytes.NewReader([]byte("grant_type=client_credentials"))
 
@@ -34,7 +40,7 @@ func TwitterQuery(query string, ch chan model.Tweets) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		ch <- model.Tweets{
+		responseCh <- model.Tweets{
 			Err: model.ApiError{"Bad Request", 400},
 		}
 	}
@@ -44,7 +50,7 @@ func TwitterQuery(query string, ch chan model.Tweets) {
 
 	err = decoder.Decode(&twitterToken)
 	if err != nil {
-		ch <- model.Tweets{
+		responseCh <- model.Tweets{
 			Err: model.ApiError{"Internal Server Error", 500},
 		}
 	}
@@ -52,12 +58,12 @@ func TwitterQuery(query string, ch chan model.Tweets) {
 	bearerToken := twitterToken.AccessToken
 
 	clients := &http.Client{}
-	request, err := http.NewRequest("GET", EncodeTwitterURL(query), nil)
+	request, err := http.NewRequest("GET", EncodeTwitterURL(queryParameter), nil)
 
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
 	response, err := clients.Do(request)
 	if err != nil {
-		ch <- model.Tweets{
+		responseCh <- model.Tweets{
 			Err: model.ApiError{"Bad Request", 400},
 		}
 	}
@@ -66,16 +72,16 @@ func TwitterQuery(query string, ch chan model.Tweets) {
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err = tweets.Decode(body); err != nil {
-		ch <- model.Tweets{
+		responseCh <- model.Tweets{
 			Err: model.ApiError{"Internal Server Error", 500},
 		}
 	}
-
-	ch <- *tweets
+	responseCh <- *tweets
 }
 
-func EncodeTwitterURL(query string) string {
-	queryEnc := url.QueryEscape(query)
+// encode URL for given query parameter
+func EncodeTwitterURL(queryParameter string) string {
+	queryEnc := url.QueryEscape(queryParameter)
 
 	return fmt.Sprintf(twitterBaseUrl, queryEnc)
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// Do the HTTP requests against a body
 func Do(url string) ([]byte, error) {
 
 	response, err := http.Get(url)

@@ -10,31 +10,27 @@ import (
 
 var duckBaseUrl = "https://api.duckduckgo.com/?q=%s&format=json"
 
-func DuckQuery(query string, ch chan model.Message) {
-
-	url := EncodeDuckURL(query)
-
+// query the DuckDuckGo search API for given query parameter and passes response in channel
+func DuckResourceQuery(queryParameter string, responseCh chan model.Message) {
+	url := EncodeDuckURL(queryParameter)
 	body, err := util.Do(url)
-
 	if err != nil {
-		ch <- model.Message{
+		responseCh <- model.Message{
 			Err: model.ApiError{"Internal Server Error", 500},
 		}
 	}
-
 	message := &model.Message{}
-
 	if err = message.Decode(body); err != nil {
-		ch <- model.Message{
+		responseCh <- model.Message{
 			Err: model.ApiError{"Internal Server Error", 500},
 		}
 	}
-
-	ch <- *message
+	responseCh <- *message
 }
 
-func EncodeDuckURL(query string) string {
-	queryEnc := url.QueryEscape(query)
+// Encode URL given a query parameter
+func EncodeDuckURL(queryParameter string) string {
+	queryEnc := url.QueryEscape(queryParameter)
 
 	return fmt.Sprintf(duckBaseUrl, queryEnc)
 }

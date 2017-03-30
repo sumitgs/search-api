@@ -2,6 +2,7 @@ package model
 
 import "encoding/json"
 
+// structure containing response returned by multiple sites
 type SearchResponse struct {
 	Query      string
 	Google     GoogleResponses
