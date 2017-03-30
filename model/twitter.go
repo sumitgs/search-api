@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 )
 
 type TwitterTokenResponse struct {
@@ -30,8 +31,8 @@ func TwitterQuery(query string, ch chan Tweets) {
 
 	client := &http.Client{}
 
-	ConsumerKey := ""
-	ConsumerSecret := ""
+	ConsumerKey := os.Getenv("TCK")
+	ConsumerSecret := os.Getenv("TCS")
 
 	src := ConsumerKey + ":" + ConsumerSecret
 	encodedTwitterKey := base64.StdEncoding.EncodeToString([]byte(src))

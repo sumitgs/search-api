@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
+	"os"
+
 	"github.com/search-api/util"
 )
 
@@ -22,7 +24,7 @@ type GoogleResponses struct {
 
 func GoogleQuery(query string, ch chan GoogleResponses) {
 
-	apikey := ""
+	apikey := os.Getenv("GAK")
 
 	url := EncodeGoogleURL(query, apikey)
 
