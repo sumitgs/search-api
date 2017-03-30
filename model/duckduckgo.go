@@ -3,9 +3,9 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"net/url"
+
+	"github.com/search-api/util"
 )
 
 var duckBaseUrl = "https://api.duckduckgo.com/?q=%s&format=json"
@@ -16,27 +16,11 @@ type Message struct {
 	Err            ApiError `json:"apperror,omitempty"`
 }
 
-func Do(url string) ([]byte, error) {
-
-	response, err := http.Get(url)
-	defer response.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
-}
-
 func DuckQuery(query string, ch chan Message) {
 
 	url := EncodeDuckURL(query)
 
-	body, err := Do(url)
+	body, err := util.Do(url)
 
 	if err != nil {
 		// TODO

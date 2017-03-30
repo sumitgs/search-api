@@ -3,9 +3,9 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"net/url"
+
+	"github.com/search-api/util"
 )
 
 var googleBaseURL = "https://www.googleapis.com/customsearch/v1?key=%s&cx=017576662512468239146:omuauf_lfve&q=%s"
@@ -20,22 +20,6 @@ type GoogleResponses struct {
 	Err   ApiError         `json:"apperror,omitempty"`
 }
 
-func DoGoogleQuery(url string) ([]byte, error) {
-
-	response, err := http.Get(url)
-	defer response.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
-}
-
 func GoogleQuery(query string, ch chan GoogleResponses) {
 
 	apikey := ""
@@ -43,7 +27,7 @@ func GoogleQuery(query string, ch chan GoogleResponses) {
 	url := EncodeGoogleURL(query, apikey)
 	fmt.Println("Url: ", url)
 
-	body, err := Do(url)
+	body, err := util.Do(url)
 
 	if err != nil {
 		// TODO

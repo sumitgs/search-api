@@ -26,22 +26,6 @@ type Tweets struct {
 	Err      ApiError `json:"apperror,omitempty"`
 }
 
-func DoTwitterQuery(url string) ([]byte, error) {
-
-	response, err := http.Get(url)
-	defer response.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
-}
-
 func TwitterQuery(query string, ch chan Tweets) {
 
 	client := &http.Client{}
