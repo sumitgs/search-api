@@ -19,6 +19,7 @@ func main() {
 
 	if err != nil {
 		fmt.Println("cannot set twitter Bearer Token, error is: ", err.Error())
+		return
 	}
 
 	fmt.Println("ready to go")
