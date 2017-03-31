@@ -17,7 +17,7 @@ func Search(w http.ResponseWriter, r *http.Request) {
 		cancel context.CancelFunc
 	)
 
-	ctx, cancel = context.WithTimeout(context.Background(), 7*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 	defer cancel()
 
