@@ -1,19 +1,13 @@
 package api
 
-import (
-	"testing"
+// func Test_DuckResourceQuery(t *testing.T) {
 
-	"github.com/search-api/model"
-)
+// 	responseChannel := make(chan model.Message)
+// 	go DuckResourceQuery("barcelona", responseChannel)
 
-func Test_DuckResourceQuery(t *testing.T) {
+// 	message := <-responseChannel
+// 	if message.AbstractSource == "" {
+// 		t.Fatalf("Expectred response from DuckDuckGo API")
+// 	}
 
-	responseChannel := make(chan model.Message)
-	go DuckResourceQuery("barcelona", responseChannel)
-
-	message := <-responseChannel
-	if message.AbstractSource == "" {
-		t.Fatalf("Expectred response from DuckDuckGo API")
-	}
-
-}
+// }

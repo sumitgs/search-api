@@ -2,15 +2,16 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 
 	"github.com/search-api/model"
+	"github.com/search-api/util"
 )
 
 var twitterBaseUrl = "https://api.twitter.com/1.1/search/tweets.json?count=3&q=%s"
@@ -24,9 +25,9 @@ func SetTwitterCredential() {
 	ConsumerSecret = os.Getenv("TWITTER_CONSUMER_SECRET")
 }
 
-// query Twitter search API for given query parameter and returns response in a channel
-func TwitterResourceQuery(queryParameter string, responseCh chan model.Tweets) {
+var bearerToken string
 
+func SetTwitterBearerToken() error {
 	client := &http.Client{}
 
 	TwitterKey := ConsumerKey + ":" + ConsumerSecret
@@ -39,10 +40,9 @@ func TwitterResourceQuery(queryParameter string, responseCh chan model.Tweets) {
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
 
 	resp, err := client.Do(req)
+
 	if err != nil {
-		responseCh <- model.Tweets{
-			Err: model.ApiError{"Bad Request", 400},
-		}
+		return err
 	}
 
 	twitterToken := model.TwitterTokenResponse{}
@@ -50,33 +50,48 @@ func TwitterResourceQuery(queryParameter string, responseCh chan model.Tweets) {
 
 	err = decoder.Decode(&twitterToken)
 	if err != nil {
-		responseCh <- model.Tweets{
-			Err: model.ApiError{"Internal Server Error", 500},
-		}
+		return err
 	}
 
-	bearerToken := twitterToken.AccessToken
+	bearerToken = twitterToken.AccessToken
+	return nil
+}
 
-	clients := &http.Client{}
+// query Twitter search API for given query parameter and returns response in a channel
+func TwitterResourceQuery(ctx context.Context, queryParameter string, responseCh chan model.Tweets) {
+
 	request, err := http.NewRequest("GET", EncodeTwitterURL(queryParameter), nil)
-
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
-	response, err := clients.Do(request)
 	if err != nil {
 		responseCh <- model.Tweets{
-			Err: model.ApiError{"Bad Request", 400},
+			Err: model.ApiError{err.Error(), http.StatusInternalServerError},
 		}
+		return
 	}
 
-	tweets := &model.Tweets{}
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
 
-	body, err := ioutil.ReadAll(response.Body)
-	if err = tweets.Decode(body); err != nil {
+	// Issue the HTTP request and handle the respons. Request is cancelled if context is closed.
+	var tweets model.Tweets
+	err = util.HttpDo(ctx, request, func(response *http.Response, err error) error {
+		if err != nil {
+			return err
+		}
+		defer response.Body.Close()
+
+		if err = json.NewDecoder(response.Body).Decode(&tweets); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		responseCh <- model.Tweets{
-			Err: model.ApiError{"Internal Server Error", 500},
+			Err: model.ApiError{err.Error(), http.StatusInternalServerError},
 		}
+	} else {
+		responseCh <- tweets
 	}
-	responseCh <- *tweets
 }
 
 // encode URL for given query parameter

@@ -1,7 +1,10 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 
@@ -17,28 +20,39 @@ func SetGoogleCredential() {
 	apikey = os.Getenv("GOOGLE_API_KEY")
 }
 
-// query Google search API for given query parameter and returns response in a channel
-func GoogleResourceQuery(queryParameter string, responseCh chan model.GoogleResponses) {
-
-	url := EncodeGoogleURL(queryParameter, apikey)
-
-	body, err := util.Do(url)
+func GoogleResourceQuery(ctx context.Context, queryParameter string, responseCh chan model.GoogleResponses) {
+	request, err := http.NewRequest("GET", EncodeGoogleURL(queryParameter, apikey), nil)
 
 	if err != nil {
 		responseCh <- model.GoogleResponses{
-			Err: model.ApiError{"Internal Server Error", 500},
+			Err: model.ApiError{err.Error(), http.StatusInternalServerError},
 		}
+		return
 	}
 
-	googleRes := &model.GoogleResponses{}
+	// Issue the HTTP request and handle the respons. Request is cancelled if context is closed.
+	var googleResp model.GoogleResponses
+	err = util.HttpDo(ctx, request, func(response *http.Response, err error) error {
+		if err != nil {
+			return err
+		}
+		defer response.Body.Close()
 
-	if err = googleRes.Decode(body); err != nil {
+		if err = json.NewDecoder(response.Body).Decode(&googleResp); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		responseCh <- model.GoogleResponses{
-			Err: model.ApiError{"Internal Server Error", 500},
+			Err: model.ApiError{err.Error(), http.StatusInternalServerError},
 		}
+	} else {
+		responseCh <- googleResp
 	}
 
-	responseCh <- *googleRes
 }
 
 // encode URL for given query parameter

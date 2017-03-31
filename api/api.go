@@ -1,125 +1,57 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
-
 	"time"
 
 	"github.com/search-api/model"
 )
 
-func Search() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query().Get("q")
+// Search handles API query by forwarding query to Google Search API, DuckDuckGo Search API and Twitter Search API. The search is cancelled
+// after the timeout.
+func Search(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
 
-		googleAPIResCh := getGoogleSearch(query, GoogleQuery)
-		twitterAPIResCh := getTwitterSearch(query, TwitterQuery)
-		duckduckGoAPIResCh := getDuckDuckGoSearch(query, DuckQuery)
-		defer func() {
-			close(googleAPIResCh)
-			close(twitterAPIResCh)
-			close(duckduckGoAPIResCh)
-		}()
+	ctx, cancel = context.WithTimeout(context.Background(), 7*time.Second)
 
-		response := model.SearchResponse{
-			Query:      query,
-			Google:     <-googleAPIResCh,
-			DuckDuckGO: <-duckduckGoAPIResCh,
-			Twitter:    <-twitterAPIResCh,
-		}
+	defer cancel()
 
-		w.Header().Add("Content-Type", "application/json")
-		b, err := json.Marshal(response)
-		if err != nil {
-			// TODO
-		}
-		w.Write(b)
+	queryPatameter := r.URL.Query().Get("q")
+	if queryPatameter == "" {
+		http.Error(w, "no query", http.StatusBadRequest)
+		return
 	}
-}
 
-func getGoogleSearch(query string, s func(string, chan model.GoogleResponses)) chan model.GoogleResponses {
-	ch := make(chan model.GoogleResponses)
-	timer := time.NewTimer(1 * time.Second)
+	searchResponse := &model.SearchResponse{}
+	searchResponse.Query = queryPatameter
 
-	go s(query, ch)
+	// Run the DuckDuckGo search and store its response in Response Channel
+	duckduckGoAPIRespCh := make(chan model.Message)
+	go DuckResourceQuery(ctx, queryPatameter, duckduckGoAPIRespCh)
 
-	responseCh := make(chan model.GoogleResponses)
+	// Run the Google search and store its response in Response Channel
+	googleAPIRespCh := make(chan model.GoogleResponses)
+	go GoogleResourceQuery(ctx, queryPatameter, googleAPIRespCh)
 
-	go func() {
-		select {
-		case res := <-ch:
-			responseCh <- res
-		case <-timer.C:
-			responseCh <- model.GoogleResponses{
-				Err: model.ApiError{"timeout occured", 500},
-			}
-		}
-	}()
+	// Run the Twitter search and store its response in Response Channel
+	twitterAPIRespCh := make(chan model.Tweets)
+	go TwitterResourceQuery(ctx, queryPatameter, twitterAPIRespCh)
 
-	return responseCh
-}
+	searchResponse.DuckDuckGO = <-duckduckGoAPIRespCh
+	searchResponse.Google = <-googleAPIRespCh
+	searchResponse.Twitter = <-twitterAPIRespCh
 
-/* Can use one common search function instead of different function for different resource site. This approach uses empty interface and
-type assertion for getting data back from the interface. But these has added cost in terms of performance.
+	w.Header().Add("Content-Type", "application/json")
 
-type Response struct {
-	Data interface{}
-	Err  error
-}
+	resp, err := json.Marshal(searchResponse)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	w.Write(resp)
 
-func search(query string, search func(string, interface{}, chan model.Response)) model.Response {
-	response_ch := make(chan model.Response)
-	var responseData interface{}
-	go search(query, responseData, response_ch)
-
-	resp := <-response_ch
-	return resp
-}
-*/
-
-func getTwitterSearch(query string, s func(string, chan model.Tweets)) chan model.Tweets {
-	ch := make(chan model.Tweets)
-	timer := time.NewTimer(1 * time.Second)
-
-	go s(query, ch)
-
-	responseCh := make(chan model.Tweets)
-
-	go func() {
-		select {
-		case res := <-ch:
-			responseCh <- res
-		case <-timer.C:
-			responseCh <- model.Tweets{
-				Err: model.ApiError{"timeout occured", 500},
-			}
-		}
-
-	}()
-
-	return responseCh
-}
-
-func getDuckDuckGoSearch(query string, s func(string, chan model.Message)) chan model.Message {
-	ch := make(chan model.Message)
-	timer := time.NewTimer(1 * time.Second)
-
-	go s(query, ch)
-
-	responseCh := make(chan model.Message)
-
-	go func() {
-		select {
-		case res := <-ch:
-			responseCh <- res
-		case <-timer.C:
-			responseCh <- model.Message{
-				Err: model.ApiError{"timeout occured", 500},
-			}
-		}
-
-	}()
-
-	return responseCh
 }

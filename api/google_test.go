@@ -1,10 +1,6 @@
 package api
 
-import (
-	"testing"
-
-	"github.com/search-api/model"
-)
+import "testing"
 
 func Test_GoogleCredentials(t *testing.T) {
 	SetGoogleCredential()
@@ -13,14 +9,14 @@ func Test_GoogleCredentials(t *testing.T) {
 	}
 }
 
-func Test_GoogleResourceQuery(t *testing.T) {
-	responseChannel := make(chan model.GoogleResponses)
+// func Test_GoogleResourceQuery(t *testing.T) {
+// 	responseChannel := make(chan model.GoogleResponses)
 
-	go GoogleResourceQuery("barcelona", responseChannel)
+// 	go GoogleResourceQuery("barcelona", responseChannel)
 
-	googleResponse := <-responseChannel
+// 	googleResponse := <-responseChannel
 
-	if len(googleResponse.Items) == 0 {
-		t.Fatalf("Expected greater than 0 search result")
-	}
-}
+// 	if len(googleResponse.Items) == 0 {
+// 		t.Fatalf("Expected greater than 0 search result")
+// 	}
+// }
