@@ -1,6 +1,6 @@
 # search-api
 
-The idea behind the project is to search multiple resources sites(Google Search, Twitter Search, and DuckDuckGO Search) parallely for a single request made to the API, with the constraint of response timeout. 
+The idea behind the project is to search multiple resources sites(Google Search, Twitter Search, and DuckDuckGO Search) in parallel for a single request made to the API, with the constraint of response timeout. 
 
 Here I have used Context package to timeout request.  the Context is canceled automatically when the timeout elapses:
 
